@@ -48,6 +48,7 @@ let votes = {
     'red': 0,
     'green': 0
 };
+let globalVotingRound = 1; // Tracks current voting session to invalidate old user sessions on reset
 
 // Check auth status
 app.get('/api/auth/status', (req, res) => {
@@ -80,6 +81,13 @@ const activeRequests = new Set();
 
 // Submit a vote
 app.post('/api/vote', (req, res) => {
+    // Check if user's session belongs to an older voting round
+    if (req.session.votingRound !== globalVotingRound) {
+        req.session.hasVoted = false;
+        req.session.votedOption = null;
+        req.session.votingRound = globalVotingRound;
+    }
+
     // Admin cannot vote
     if (req.session.role === 'admin') {
         return res.status(403).json({ success: false, message: '管理員無法投票，僅能觀看結果 (Admins cannot vote)' });
@@ -121,6 +129,13 @@ app.post('/api/vote', (req, res) => {
 
 // Get voting results
 app.get('/api/results', (req, res) => {
+    // Check if user's session belongs to an older voting round
+    if (req.session.votingRound !== globalVotingRound) {
+        req.session.hasVoted = false;
+        req.session.votedOption = null;
+        req.session.votingRound = globalVotingRound;
+    }
+
     res.json({
         votes: votes,
         hasVoted: req.session.hasVoted || false,
@@ -138,6 +153,7 @@ app.post('/api/reset', (req, res) => {
     for (let key in votes) {
         votes[key] = 0;
     }
+    globalVotingRound++; // Increment round to invalidate all existing user vote sessions
     res.json({ success: true, message: '票數已重置 (Votes reset)' });
 });
 

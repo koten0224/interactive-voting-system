@@ -145,7 +145,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 if (pollInterval) clearInterval(pollInterval); // Stop polling if returning to vote
                 
-                // Show voting state directly (buttons are hardcoded)
+                restoreVotingButtons(); // Ensure buttons are clickable and not stuck on spinner
+
+                // Show voting state directly
                 loadingState.classList.add('hidden');
                 votingState.classList.remove('hidden');
             }
@@ -154,11 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Revote Button
-    revoteBtn.addEventListener('click', () => {
-        if (pollInterval) clearInterval(pollInterval);
-        
-        // Restore buttons
+    function restoreVotingButtons() {
         voteBtns.forEach(b => {
             b.disabled = false;
             const option = b.getAttribute('data-option');
@@ -171,6 +169,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
         });
+    }
+
+    // Revote Button
+    revoteBtn.addEventListener('click', () => {
+        if (pollInterval) clearInterval(pollInterval);
+        
+        restoreVotingButtons();
         
         resultsState.classList.add('hidden');
         votingState.classList.remove('hidden');
