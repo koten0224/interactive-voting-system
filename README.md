@@ -41,6 +41,8 @@ cp .env.example .env
 ./start.sh
 ```
 > **優勢**：Cloudflare Tunnel 不像 Pinggy 有 60 分鐘強制斷線的限制，連線品質也更穩定。
+> **⚠️ 隧道連線注意事項**：Cloudflare 產生網址後，**請務必先自己點擊該網址測試**。如果點進去出現 `502 Bad Gateway` 或無法連線，這屬於免費伺服器偶發的節點配置延遲，請直接按 `Ctrl + C` 關閉，並重新執行 `./start.sh` 產生新網址即可。
+> 
 > 若要**關閉服務**，只需在終端機按下 `Ctrl + C`，腳本就會自動為您把 Node 伺服器與 Cloudflare 兩者一次乾淨俐落地關閉！
 
 ---
