@@ -256,8 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update Results UI
     function updateResultsUI(votes) {
-        resultsContainer.innerHTML = '';
-        
         let totalVotes = 0;
         for (const key in votes) {
             totalVotes += votes[key];
@@ -265,38 +263,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const sortedVotes = Object.entries(votes).sort((a, b) => b[1] - a[1]);
 
-        sortedVotes.forEach(([option, count]) => {
+        sortedVotes.forEach(([option, count], index) => {
             const percentage = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
-            
-            // Set custom gradient based on option
-            let gradientClass = '';
-            if (option === 'red') {
-                gradientClass = 'background: linear-gradient(90deg, #f87171, #ef4444);';
-            } else if (option === 'green') {
-                gradientClass = 'background: linear-gradient(90deg, #34d399, #10b981);';
-            }
-
             const nameData = displayNames[option] || { title: option, subtitle: '' };
             const displayName = `${nameData.title}：${nameData.subtitle}`.trim();
-
-            const resultItem = document.createElement('div');
-            resultItem.className = 'result-item';
-            resultItem.innerHTML = `
-                <div class="result-info">
-                    <span class="result-name">${displayName}</span>
-                    <span class="result-count">${count} 票 (${percentage}%)</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar" style="width: 0%; ${gradientClass}"></div>
-                </div>
-            `;
             
-            resultsContainer.appendChild(resultItem);
+            // Try to find existing element to avoid re-rendering and animation reset
+            let resultItem = document.getElementById(`result-${option}`);
+            
+            if (!resultItem) {
+                // First time rendering this option
+                let gradientClass = '';
+                if (option === 'red') {
+                    gradientClass = 'background: linear-gradient(90deg, #f87171, #ef4444);';
+                } else if (option === 'green') {
+                    gradientClass = 'background: linear-gradient(90deg, #34d399, #10b981);';
+                }
 
+                resultItem = document.createElement('div');
+                resultItem.id = `result-${option}`;
+                resultItem.className = 'result-item';
+                // Use a transition for smooth reordering
+                resultItem.style.transition = 'order 0.5s ease, transform 0.5s ease';
+                resultItem.innerHTML = `
+                    <div class="result-info">
+                        <span class="result-name"></span>
+                        <span class="result-count"></span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar" style="width: 0%; ${gradientClass}"></div>
+                    </div>
+                `;
+                resultsContainer.appendChild(resultItem);
+            }
+
+            // Update content and styling
+            resultItem.style.order = index; // CSS Flexbox order for sorting without DOM manipulation
+            resultItem.querySelector('.result-name').textContent = displayName;
+            resultItem.querySelector('.result-count').textContent = `${count} 票 (${percentage}%)`;
+
+            // Update progress bar width (CSS transition will animate the slide smoothly)
             setTimeout(() => {
                 const bar = resultItem.querySelector('.progress-bar');
                 if (bar) bar.style.width = `${percentage}%`;
-            }, 50);
+            }, 10);
         });
     }
 
