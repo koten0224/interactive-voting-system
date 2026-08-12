@@ -64,6 +64,17 @@ app.post('/api/login', (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
         req.session.role = 'admin';
+        
+        // If the admin voted while they were a normal user, retract their vote
+        if (req.session.hasVoted && req.session.votedOption && votes[req.session.votedOption] !== undefined) {
+            // Only retract if the voting round matches, otherwise it's a relic vote that doesn't count anyway
+            if (req.session.votingRound === globalVotingRound) {
+                votes[req.session.votedOption]--;
+            }
+            req.session.hasVoted = false;
+            req.session.votedOption = null;
+        }
+
         res.json({ success: true, role: 'admin' });
     } else {
         res.status(401).json({ success: false, message: '密碼錯誤 (Incorrect password)' });
