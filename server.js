@@ -65,6 +65,24 @@ app.get('/api/auth/status', (req, res) => {
     }
 });
 
+// Middleware: Validate Voting Round
+function validateVotingRound(req, res, next) {
+    if (req.session.votingRound !== globalVotingRound) {
+        req.session.hasVoted = false;
+        req.session.votedOption = null;
+        req.session.votingRound = globalVotingRound;
+    }
+    next();
+}
+
+// Middleware: Require Admin
+function requireAdmin(req, res, next) {
+    if (req.session.role !== ROLES.ADMIN) {
+        return res.status(403).json({ success: false, message: '權限不足 (Forbidden)' });
+    }
+    next();
+}
+
 // Admin Login endpoint
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
@@ -98,13 +116,7 @@ app.post('/api/logout', (req, res) => {
 const activeRequests = new Set();
 
 // Submit a vote
-app.post('/api/vote', (req, res) => {
-    // Check if user's session belongs to an older voting round
-    if (req.session.votingRound !== globalVotingRound) {
-        req.session.hasVoted = false;
-        req.session.votedOption = null;
-        req.session.votingRound = globalVotingRound;
-    }
+app.post('/api/vote', validateVotingRound, (req, res) => {
 
     // Admin cannot vote
     if (req.session.role === ROLES.ADMIN) {
@@ -146,14 +158,7 @@ app.post('/api/vote', (req, res) => {
 });
 
 // Get voting results
-app.get('/api/results', (req, res) => {
-    // Check if user's session belongs to an older voting round
-    if (req.session.votingRound !== globalVotingRound) {
-        req.session.hasVoted = false;
-        req.session.votedOption = null;
-        req.session.votingRound = globalVotingRound;
-    }
-
+app.get('/api/results', validateVotingRound, (req, res) => {
     res.json({
         votes: votes,
         hasVoted: req.session.hasVoted || false,
@@ -163,11 +168,7 @@ app.get('/api/results', (req, res) => {
 });
 
 // Reset votes (Admin only)
-app.post('/api/reset', (req, res) => {
-    if (req.session.role !== ROLES.ADMIN) {
-        return res.status(403).json({ success: false, message: '權限不足 (Forbidden)' });
-    }
-    
+app.post('/api/reset', requireAdmin, (req, res) => {
     for (let key in votes) {
         votes[key] = 0;
     }
