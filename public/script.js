@@ -24,8 +24,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Centralized mapping for option display names (Now injected by EJS into window)
     let displayNames = window.displayNames || {};
 
+    // Role Constants
+    const ROLES = {
+        ADMIN: 'admin',
+        USER: 'user'
+    };
+
     let pollInterval = null;
-    let currentUserRole = 'user';
+    let currentUserRole = ROLES.USER;
 
     // Initialize App
     async function init() {
@@ -34,8 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const authRes = await fetch('/api/auth/status');
             const authData = await authRes.json();
 
-            if (authData.authenticated && authData.role === 'admin') {
-                currentUserRole = 'admin';
+            if (authData.authenticated && authData.role === ROLES.ADMIN) {
+                currentUserRole = ROLES.ADMIN;
                 updateHeaderButtonState(true);
             }
 
@@ -48,11 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Modal Events
     headerLoginBtn.addEventListener('click', async () => {
-        if (currentUserRole === 'admin') {
+        if (currentUserRole === ROLES.ADMIN) {
             // Logout
             try {
                 await fetch('/api/logout', { method: 'POST' });
-                currentUserRole = 'user';
+                currentUserRole = ROLES.USER;
                 updateHeaderButtonState(false);
                 adminControls.classList.add('hidden');
                 userControls.classList.remove('hidden');
@@ -114,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             if (data.success) {
-                currentUserRole = 'admin';
+                currentUserRole = ROLES.ADMIN;
                 loginModal.classList.add('hidden');
                 updateHeaderButtonState(true);
                 
@@ -139,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             // Admin forces result view; User views results if voted
-            if (currentUserRole === 'admin' || data.hasVoted) {
+            if (currentUserRole === ROLES.ADMIN || data.hasVoted) {
                 showResultsState(data.votes);
                 startPolling();
             } else {
@@ -184,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Vote Button Clicks
     voteBtns.forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (currentUserRole === 'admin') {
+            if (currentUserRole === ROLES.ADMIN) {
                 showError('管理員無法投票 (Admins cannot vote)', errorMessage);
                 return;
             }
@@ -228,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateResultsUI(votes);
 
         // Show Admin controls if role is admin
-        if (currentUserRole === 'admin') {
+        if (currentUserRole === ROLES.ADMIN) {
             adminControls.classList.remove('hidden');
             userControls.classList.add('hidden');
         } else {

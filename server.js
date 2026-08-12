@@ -50,12 +50,18 @@ let votes = {
 };
 let globalVotingRound = 1; // Tracks current voting session to invalidate old user sessions on reset
 
+// Role Constants
+const ROLES = {
+    ADMIN: 'admin',
+    USER: 'user'
+};
+
 // Check auth status
 app.get('/api/auth/status', (req, res) => {
-    if (req.session.role === 'admin') {
-        res.json({ authenticated: true, role: 'admin' });
+    if (req.session.role === ROLES.ADMIN) {
+        res.json({ authenticated: true, role: ROLES.ADMIN });
     } else {
-        res.json({ authenticated: false, role: 'user' });
+        res.json({ authenticated: false, role: ROLES.USER });
     }
 });
 
@@ -63,7 +69,7 @@ app.get('/api/auth/status', (req, res) => {
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
-        req.session.role = 'admin';
+        req.session.role = ROLES.ADMIN;
         
         // If the admin voted while they were a normal user, retract their vote
         if (req.session.hasVoted && req.session.votedOption && votes[req.session.votedOption] !== undefined) {
@@ -75,7 +81,7 @@ app.post('/api/login', (req, res) => {
             req.session.votedOption = null;
         }
 
-        res.json({ success: true, role: 'admin' });
+        res.json({ success: true, role: ROLES.ADMIN });
     } else {
         res.status(401).json({ success: false, message: '密碼錯誤 (Incorrect password)' });
     }
@@ -100,7 +106,7 @@ app.post('/api/vote', (req, res) => {
     }
 
     // Admin cannot vote
-    if (req.session.role === 'admin') {
+    if (req.session.role === ROLES.ADMIN) {
         return res.status(403).json({ success: false, message: '管理員無法投票，僅能觀看結果 (Admins cannot vote)' });
     }
 
@@ -151,13 +157,13 @@ app.get('/api/results', (req, res) => {
         votes: votes,
         hasVoted: req.session.hasVoted || false,
         votedOption: req.session.votedOption || null,
-        role: req.session.role || 'user'
+        role: req.session.role || ROLES.USER
     });
 });
 
 // Reset votes (Admin only)
 app.post('/api/reset', (req, res) => {
-    if (req.session.role !== 'admin') {
+    if (req.session.role !== ROLES.ADMIN) {
         return res.status(403).json({ success: false, message: '權限不足 (Forbidden)' });
     }
     
