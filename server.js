@@ -11,7 +11,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 
 // Configure Session
 app.use(session({
-    secret: 'super-secret-key-for-voting',
+    secret: process.env.SESSION_SECRET || 'super-secret-key-for-voting',
     resave: false,
     saveUninitialized: true,
     cookie: { 
