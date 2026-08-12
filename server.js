@@ -68,23 +68,24 @@ app.get('/api/auth/status', (req, res) => {
 // Admin Login endpoint
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
-    if (password === ADMIN_PASSWORD) {
-        req.session.role = ROLES.ADMIN;
-        
-        // If the admin voted while they were a normal user, retract their vote
-        if (req.session.hasVoted && req.session.votedOption && votes[req.session.votedOption] !== undefined) {
-            // Only retract if the voting round matches, otherwise it's a relic vote that doesn't count anyway
-            if (req.session.votingRound === globalVotingRound) {
-                votes[req.session.votedOption]--;
-            }
-            req.session.hasVoted = false;
-            req.session.votedOption = null;
-        }
-
-        res.json({ success: true, role: ROLES.ADMIN });
-    } else {
-        res.status(401).json({ success: false, message: '密碼錯誤 (Incorrect password)' });
+    
+    if (password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ success: false, message: '密碼錯誤 (Incorrect password)' });
     }
+
+    req.session.role = ROLES.ADMIN;
+    
+    // If the admin voted while they were a normal user, retract their vote
+    if (req.session.hasVoted && req.session.votedOption && votes[req.session.votedOption] !== undefined) {
+        // Only retract if the voting round matches, otherwise it's a relic vote that doesn't count anyway
+        if (req.session.votingRound === globalVotingRound) {
+            votes[req.session.votedOption]--;
+        }
+        req.session.hasVoted = false;
+        req.session.votedOption = null;
+    }
+
+    res.json({ success: true, role: ROLES.ADMIN });
 });
 
 // Admin Logout endpoint
@@ -120,25 +121,25 @@ app.post('/api/vote', (req, res) => {
     try {
         const { option } = req.body;
 
-        if (votes[option] !== undefined) {
-            // If already voted for the exact same option, do nothing
-            if (req.session.hasVoted && req.session.votedOption === option) {
-                return res.json({ success: true, message: '維持原判！ (Vote unchanged)' });
-            }
-
-            // If changing vote, deduct from previous option
-            if (req.session.hasVoted && req.session.votedOption && votes[req.session.votedOption] !== undefined) {
-                votes[req.session.votedOption]--;
-            }
-
-            // Add new vote
-            votes[option]++;
-            req.session.hasVoted = true;
-            req.session.votedOption = option;
-            res.json({ success: true, message: '投票成功！ (Vote successful!)' });
-        } else {
-            res.status(400).json({ success: false, message: '無效的選項 (Invalid option)' });
+        if (votes[option] === undefined) {
+            return res.status(400).json({ success: false, message: '無效的選項 (Invalid option)' });
         }
+
+        // If already voted for the exact same option, do nothing
+        if (req.session.hasVoted && req.session.votedOption === option) {
+            return res.json({ success: true, message: '維持原判！ (Vote unchanged)' });
+        }
+
+        // If changing vote, deduct from previous option
+        if (req.session.hasVoted && req.session.votedOption && votes[req.session.votedOption] !== undefined) {
+            votes[req.session.votedOption]--;
+        }
+
+        // Add new vote
+        votes[option]++;
+        req.session.hasVoted = true;
+        req.session.votedOption = option;
+        res.json({ success: true, message: '投票成功！ (Vote successful!)' });
     } finally {
         activeRequests.delete(req.sessionID); // Unlock
     }

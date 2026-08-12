@@ -119,16 +119,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
 
-            if (data.success) {
-                currentUserRole = ROLES.ADMIN;
-                loginModal.classList.add('hidden');
-                updateHeaderButtonState(true);
-                
-                // Admin directly views results and skips voting form
-                await proceedToApp();
-            } else {
+            if (!data.success) {
                 showError(data.message, loginError);
+                return;
             }
+
+            currentUserRole = ROLES.ADMIN;
+            loginModal.classList.add('hidden');
+            updateHeaderButtonState(true);
+            
+            // Admin directly views results and skips voting form
+            await proceedToApp();
         } catch (error) {
             showError('登入失敗，請稍後再試', loginError);
         }
@@ -211,13 +212,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const data = await res.json();
 
-                if (data.success) {
-                    await proceedToApp();
-                } else {
+                if (!data.success) {
                     showError(data.message, errorMessage);
                     btn.innerHTML = originalHTML;
                     voteBtns.forEach(b => b.disabled = false);
+                    return;
                 }
+
+                await proceedToApp();
             } catch (error) {
                 showError('投票失敗，請稍後再試', errorMessage);
                 btn.innerHTML = originalHTML;
