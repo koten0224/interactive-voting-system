@@ -29,19 +29,21 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+let currentOptions = {
+  red: {
+    title: process.env.VOTE_OPTION_RED_TITLE || "紅方",
+    subtitle: process.env.VOTE_OPTION_RED_SUBTITLE || "(Red)",
+  },
+  green: {
+    title: process.env.VOTE_OPTION_GREEN_TITLE || "綠方",
+    subtitle: process.env.VOTE_OPTION_GREEN_SUBTITLE || "(Green)",
+  },
+};
+
 // Root route to render HTML directly with options
 app.get("/", (req, res) => {
   res.render("index", {
-    options: {
-      red: {
-        title: process.env.VOTE_OPTION_RED_TITLE || "紅方",
-        subtitle: process.env.VOTE_OPTION_RED_SUBTITLE || "(Red)",
-      },
-      green: {
-        title: process.env.VOTE_OPTION_GREEN_TITLE || "綠方",
-        subtitle: process.env.VOTE_OPTION_GREEN_SUBTITLE || "(Green)",
-      },
-    },
+    options: currentOptions,
   });
 });
 
@@ -192,16 +194,28 @@ app.get("/api/results", validateVotingRound, (req, res) => {
     hasVoted: req.session.hasVoted || false,
     votedOption: req.session.votedOption || null,
     role: req.session.role || ROLES.USER,
+    options: currentOptions,
   });
 });
 
 // Reset votes (Admin only)
 app.post("/api/reset", requireAdmin, (req, res) => {
+  const { options } = req.body;
+  
+  if (options) {
+    if (options.red) currentOptions.red = options.red;
+    if (options.green) currentOptions.green = options.green;
+  }
+
   for (let key in votes) {
     votes[key] = 0;
   }
   globalVotingRound++; // Increment round to invalidate all existing user vote sessions
-  res.json({ success: true, message: "票數已重置 (Votes reset)" });
+  res.json({ 
+    success: true, 
+    message: options ? "設定已更新並重啟投票 (Updated & Restarted)" : "票數已重置 (Votes reset)",
+    options: currentOptions
+  });
 });
 
 // Listen on all network interfaces

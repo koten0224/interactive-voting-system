@@ -17,12 +17,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const adminControls = document.getElementById("admin-controls");
   const resetBtn = document.getElementById("reset-btn");
+  const resetBtnText = document.getElementById("reset-btn-text");
+  
+  // Edit Options Elements
+  const editRedTitle = document.getElementById("edit-red-title");
+  const editRedSubtitle = document.getElementById("edit-red-subtitle");
+  const editGreenTitle = document.getElementById("edit-green-title");
+  const editGreenSubtitle = document.getElementById("edit-green-subtitle");
 
   const userControls = document.getElementById("user-controls");
   const revoteBtn = document.getElementById("revote-btn");
 
   // Centralized mapping for option display names (Now injected by EJS into window)
   let displayNames = window.displayNames || {};
+
+  // Edit options check logic
+  function checkOptionChanges() {
+    if (currentUserRole !== ROLES.ADMIN) return false;
+    if (!editRedTitle) return false;
+
+    const isChanged =
+      editRedTitle.value !== displayNames.red.title ||
+      editRedSubtitle.value !== displayNames.red.subtitle ||
+      editGreenTitle.value !== displayNames.green.title ||
+      editGreenSubtitle.value !== displayNames.green.subtitle;
+
+    if (resetBtnText) {
+      resetBtnText.textContent = isChanged
+        ? "送出設定並重啟投票 (Submit & Restart)"
+        : "重置所有票數 (Admin)";
+    }
+    return isChanged;
+  }
+
+  [editRedTitle, editRedSubtitle, editGreenTitle, editGreenSubtitle].forEach(
+    (el) => {
+      if (el) el.addEventListener("input", checkOptionChanges);
+    }
+  );
 
   // Role Constants
   const ROLES = {
@@ -144,6 +176,19 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await fetch("/api/results");
       const data = await res.json();
+      
+      if (data.options) {
+        displayNames = data.options;
+        window.displayNames = displayNames;
+        // Update admin inputs just in case
+        if (editRedTitle) {
+          editRedTitle.value = displayNames.red.title;
+          editRedSubtitle.value = displayNames.red.subtitle;
+          editGreenTitle.value = displayNames.green.title;
+          editGreenSubtitle.value = displayNames.green.subtitle;
+          checkOptionChanges();
+        }
+      }
 
       // Admin forces result view; User views results if voted
       if (currentUserRole === ROLES.ADMIN || data.hasVoted) {
@@ -248,23 +293,47 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Reset Votes (Admin only)
   resetBtn.addEventListener("click", async () => {
-    if (
-      !confirm(
-        "確定要重置所有票數嗎？(Are you sure you want to reset all votes?)",
-      )
-    )
-      return;
+    const isChanged = checkOptionChanges();
+    const confirmMessage = isChanged
+      ? "確定要更新選項並重置所有票數嗎？(Are you sure you want to update options and reset?)"
+      : "確定要重置所有票數嗎？(Are you sure you want to reset all votes?)";
+
+    if (!confirm(confirmMessage)) return;
 
     try {
-      const res = await fetch("/api/reset", { method: "POST" });
+      let bodyData = null;
+      if (isChanged) {
+        bodyData = JSON.stringify({
+          options: {
+            red: { title: editRedTitle.value, subtitle: editRedSubtitle.value },
+            green: { title: editGreenTitle.value, subtitle: editGreenSubtitle.value }
+          }
+        });
+      }
+
+      const res = await fetch("/api/reset", {
+        method: "POST",
+        headers: bodyData ? { "Content-Type": "application/json" } : {},
+        body: bodyData
+      });
       const data = await res.json();
 
       if (data.success) {
+        if (data.options) {
+          displayNames = data.options;
+          window.displayNames = displayNames;
+          editRedTitle.value = displayNames.red.title;
+          editRedSubtitle.value = displayNames.red.subtitle;
+          editGreenTitle.value = displayNames.green.title;
+          editGreenSubtitle.value = displayNames.green.subtitle;
+          checkOptionChanges();
+        }
+
         // Refresh results immediately
         const resultsRes = await fetch("/api/results");
         const resultsData = await resultsRes.json();
         updateResultsUI(resultsData.votes);
-        alert("重置成功！");
+        alert(data.message);
       } else {
         alert("重置失敗: " + data.message);
       }
@@ -341,6 +410,19 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const res = await fetch("/api/results");
         const data = await res.json();
+        if (data.options) {
+          displayNames = data.options;
+          window.displayNames = displayNames;
+          
+          // Do not overwrite inputs if admin is currently typing (only if not active element)
+          if (currentUserRole === ROLES.ADMIN && document.activeElement.tagName !== 'INPUT') {
+            editRedTitle.value = displayNames.red.title;
+            editRedSubtitle.value = displayNames.red.subtitle;
+            editGreenTitle.value = displayNames.green.title;
+            editGreenSubtitle.value = displayNames.green.subtitle;
+            checkOptionChanges();
+          }
+        }
         updateResultsUI(data.votes);
       } catch (error) {
         console.error("Error polling results:", error);
