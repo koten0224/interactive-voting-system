@@ -36,12 +36,17 @@ cp .env.example .env
 ```
 接著，請用編輯器打開 `.env` 檔案，填入您專屬的管理員密碼與紅綠雙方的初始標題內容。
 
-### 推薦做法：一鍵啟動與關閉 (本地端 + Cloudflare 公開網址)
-這行指令會同時啟動本地伺服器與 Cloudflare Tunnel (免費、無時限、高穩定度)：
+### 推薦做法：一鍵啟動與關閉 (本地端 + Tunnel 公開網址)
+這行指令會同時啟動本地伺服器與 Tunnel 隧道服務。腳本支援 `cloudflare` (預設) 與 `pinggy` 兩種模式：
+
 ```bash
-./start.sh
+# 預設：使用 Cloudflare Tunnel (免註冊、無時限、高穩定度)
+./start.sh 
+
+# 或者：指定使用 Pinggy Tunnel (有 60 分鐘連線限制)
+./start.sh pinggy
 ```
-> **優勢**：Cloudflare Tunnel 不像 Pinggy 有 60 分鐘強制斷線的限制，連線品質也更穩定。
+> **優勢**：推薦使用預設的 Cloudflare Tunnel，它不像 Pinggy 有 60 分鐘強制斷線的限制，連線品質也更穩定。
 > **⚠️ 隧道連線注意事項**：Cloudflare 產生網址後，**請務必先自己點擊該網址測試**。如果點進去出現 `502 Bad Gateway` 或無法連線，這屬於免費伺服器偶發的節點配置延遲，請直接按 `Ctrl + C` 關閉，並重新執行 `./start.sh` 產生新網址即可。
 > 
 > 若要**關閉服務**，只需在終端機按下 `Ctrl + C`，腳本就會自動為您把 Node 伺服器與 Cloudflare 兩者一次乾淨俐落地關閉！
