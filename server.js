@@ -200,7 +200,7 @@ app.get("/api/results", validateVotingRound, (req, res) => {
 
 // Reset votes (Admin only)
 app.post("/api/reset", requireAdmin, (req, res) => {
-  const { options } = req.body;
+  const { options } = req.body || {};
   
   if (options) {
     if (options.red) currentOptions.red = options.red;
